@@ -1,7 +1,8 @@
-import 'package:expense_tracker_app/widgets/expenses_list/expense_list.dart';
 import 'package:expense_tracker_app/models/expense.dart';
+import 'package:expense_tracker_app/widgets/expenses_list/expense_list.dart';
 import 'package:expense_tracker_app/widgets/new_expense.dart';
 import 'package:flutter/material.dart';
+import 'package:expense_tracker_app/data/expense_data.dart';
 
 class Expenses extends StatefulWidget {
   const Expenses({super.key});
@@ -13,29 +14,54 @@ class Expenses extends StatefulWidget {
 }
 
 class _ExpenseState extends State<Expenses> {
-  final List<Expense> _registeredExpenses = [
-    Expense(
-        title: 'Flutter Course',
-        amount: 19.99,
-        date: DateTime.now(),
-        category: Category.work),
-    Expense(
-        title: 'Cinema',
-        amount: 15.69,
-        date: DateTime.now(),
-        category: Category.leisure),
-  ];
-
   void _openAddExpenseOverlay() {
     //..
     showModalBottomSheet(
+      isScrollControlled: true,
       context: context,
-      builder: (ctx) => const NewExpense(),
+      builder: (ctx) => NewExpense(addToExpenseList),
     );
+  }
+
+  void addToExpenseList(Expense expense) {
+    setState(() {
+      expenses.add(expense);
+    });
+  }
+
+  void removeFromExpenseList(int index) {
+    final Expense expenseAtIndex = expenses[index];
+    setState(() {
+      expenses.removeAt(index);
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      action: SnackBarAction(
+        label: "Undo",
+        onPressed: () {
+          setState(() {
+            expenses.insert(index, expenseAtIndex);
+          });
+        },
+      ),
+      duration: const Duration(seconds: 3),
+      content: const Text("Expense Deleted"),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget mainContent = const Center(
+      child: Text("No expense found, Start adding some "),
+    );
+
+    if (expenses.isNotEmpty) {
+      mainContent = ExpenseList(
+        expenses: expenses,
+        removeExpense: removeFromExpenseList,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Flutter Expense Tracker"),
@@ -51,9 +77,7 @@ class _ExpenseState extends State<Expenses> {
           //Toolbar with the Add  button ==> Row() - one of the options
           const Text("The chart"),
           Expanded(
-            child: ExpenseList(
-              expenses: _registeredExpenses,
-            ),
+            child: mainContent,
           ),
         ],
       ),
